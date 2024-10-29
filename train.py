@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 import tensorflow as tf
 from tensorflow.keras import layers, models, applications
 from keras.layers import Dropout, GlobalAveragePooling2D, GlobalMaxPooling2D
@@ -8,7 +6,6 @@ import numpy as np
 from tensorflow.keras.layers import Input, Flatten, GlobalAveragePooling2D, GlobalMaxPooling2D, Dense, Reshape, multiply, Conv2D, Add, Activation, Concatenate
 import os
 import argparse
-
 
 def get_backbone_model(backbone_name, input_shape):
     if backbone_name == "EfficientNet":
@@ -25,17 +22,13 @@ def get_backbone_model(backbone_name, input_shape):
         raise ValueError(f"Unknown backbone model {backbone_name}")
 
 def channel_attention(input_feature, ratio=8):
-    channel = input_feature.shape[-1]
-    
+    channel = input_feature.shape[-1]    
     avg_pool = GlobalAveragePooling2D()(input_feature)
-    max_pool = GlobalMaxPooling2D()(input_feature)
-    
+    max_pool = GlobalMaxPooling2D()(input_feature)    
     avg_pool = tf.keras.layers.Dense(channel // ratio, activation='relu')(avg_pool)
-    avg_pool = tf.keras.layers.Dense(channel, activation='sigmoid')(avg_pool)
-    
+    avg_pool = tf.keras.layers.Dense(channel, activation='sigmoid')(avg_pool)    
     max_pool = tf.keras.layers.Dense(channel // ratio, activation='relu')(max_pool)
-    max_pool = tf.keras.layers.Dense(channel, activation='sigmoid')(max_pool)
-    
+    max_pool = tf.keras.layers.Dense(channel, activation='sigmoid')(max_pool)    
     scale = Add()([avg_pool, max_pool])
     scale = Activation('sigmoid')(scale)
     return multiply([input_feature, scale])
@@ -47,13 +40,11 @@ def spatial_attention(input_feature):
     concat = Concatenate(axis=-1)([avg_pool, max_pool])
     attention = Conv2D(1, kernel_size=7, padding='same', activation='sigmoid')(concat)
     return multiply([input_feature, attention])
-
 # CBAM Block
 def cbam_block(input_feature):
     x = channel_attention(input_feature)
     x = spatial_attention(x)
     return x
-
 # Define classification heads
 def combine_backbone_head(backbone, input_shape, head_name, cbam):
     if head_name == "mlp":
@@ -69,11 +60,9 @@ def combine_backbone_head(backbone, input_shape, head_name, cbam):
             x = GlobalAveragePooling2D()(x)
             # x = tf.expand_dims(x, axis=1)        
             x = tf.keras.layers.Dense(128, activation='relu') (x)
-            out = tf.keras.layers.Dense(1, activation='sigmoid') (x)        
-
+            out = tf.keras.layers.Dense(1, activation='sigmoid') (x)       
         cnn_mlp = tf.keras.Model(inputs=inputs, outputs=out)
         return cnn_mlp
-
     elif head_name == "lstm":        
         inputs = layers.Input(shape=input_shape)
         x = backbone(inputs, training=False)        
@@ -92,11 +81,9 @@ def combine_backbone_head(backbone, input_shape, head_name, cbam):
             x = tf.keras.layers.LSTM(128, activation='relu', dropout=0.3, return_sequences=True) (x)
             x = tf.keras.layers.LSTM(64, activation='relu', return_sequences=False) (x)
             x = tf.keras.layers.Dense(128, activation='relu') (x)
-            out = tf.keras.layers.Dense(1, activation='sigmoid') (x)        
-     
+            out = tf.keras.layers.Dense(1, activation='sigmoid') (x)    
         cnn_lstm = tf.keras.Model(inputs=inputs, outputs=out)    
         return cnn_lstm
-
     elif head_name == "multihead_attention": 
         inputs = layers.Input(shape=input_shape)
         x = backbone(inputs, training=False)        
@@ -152,9 +139,7 @@ def calculate_metrics(y_true, y_pred):
     print(f"Sensitivity: {sensitivity}")
     print(f"Specificity: {specificity}")
     # print(f"AUC: {auc}")
-    
     return accuracy, sensitivity, specificity
-    
 # Data loading and preprocessing
 def load_data(data_dir, image_size=(121, 121)):
     datagen = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1./255, )
@@ -162,10 +147,9 @@ def load_data(data_dir, image_size=(121, 121)):
     valid_data = datagen.flow_from_directory(os.path.join(data_dir, 'valid'), target_size=image_size, batch_size=2) 
     test_data = datagen.flow_from_directory(os.path.join(data_dir, 'test'), target_size=image_size, batch_size=2)
     return train_data, valid_data, test_data
-
+    
 # Training and evaluating the model
 def train_model(backbone, head, data_dir, epochs=2, cbam=False, image_size=(121, 121)):
-
     input_shape = (image_size[0], image_size[1], 3)
     model = get_backbone_model(backbone, input_shape)
     hybrid_model = combine_backbone_head(model, input_shape, head, cbam)
@@ -184,7 +168,7 @@ def train_model(backbone, head, data_dir, epochs=2, cbam=False, image_size=(121,
     # Calculate metrics
     calculate_metrics(y_true, y_pred_int)
 
-
+# Available options to be passed in cmd command
 # backbone = 'EfficientNet'
 # backbone_name = 'ResNet'
 backbone_name = 'ConvNext'
@@ -194,18 +178,14 @@ backbone_name = 'ConvNext'
 # head = 'lstm'
 head = 'mlp'
 # head = 'multihead_attention'
-
 # cbam=True
-cbam=False
 
-data_dir = "D:\Code_Tutorial\VoMLab\Data"
-# train_model(backbone_name, head, data_dir, cbam)
-
+#cbam=True
 
 # Main function to parse arguments
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Train hybrid CNN model with custom backbone and head.')
-    parser.add_argument('--cnnbb', type=str, help='CNN backbone to use, e.g., EfficientNet, ResNet, XceptionNet, etc.')
+    parser.add_argument('--cnnbb', type=str, help='CNN backbone to use, e.g., EfficientNet, ResNet, XceptionNet, DenseNet, ConvNext')
     parser.add_argument('--ch', type=str, help='Classification head to use, e.g., mlp, lstm, multihead_attention')
     parser.add_argument('--cbam', type=bool, default=False, help='True or Fale for usign CBAM attention')
     parser.add_argument('--epochs', type=int, default=3, help='Number of epochs to train')
