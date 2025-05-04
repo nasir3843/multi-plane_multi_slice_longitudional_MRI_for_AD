@@ -1,8 +1,8 @@
 ## Multi-Plane Multi-Slice Longitudinal MRI for Deep Ensemble Progression Detection based on Enhanced Residual Multi-Head Self-Attention 
 
-##This is a Keras implementation of the study conducted for the early detection of progression from MCI to PMCI/AD.
+##This repository provides a Keras-based implementation of a study aimed at the early detection of Alzheimer's disease progression using longitudinal MRI data..
 
-Please refer to the requirements.txt file to install all necessary libraries for running this code.
+To ensure proper execution of the code, please refer to the requirements.txt file for a complete list of required libraries and dependencies.
 
 ## Training:
 Run the following command to train any desired CNN backbone for feature extraction with a Bayesian optimized classification head. You can also use a CBAM module as an intermediate attention module by specifying a flag in the given command.
